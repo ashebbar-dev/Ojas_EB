@@ -1,0 +1,6 @@
+pydantic-ai
+supabase
+logfire
+httpx
+python-dotenv
+sendgrid  # For email reminders
