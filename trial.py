@@ -1,2 +1,1 @@
-import urllib.request,re,textwrap;lab=int(input());url="https://tinyurl.com/hs2h9v6z";tok="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"
-print(textwrap.dedent('\n'.join(re.findall(rf'^#Lab{lab}\s*\n[\s\S]*?(?=^#Lab\d+|\Z)',urllib.request.urlopen(urllib.request.Request(url,headers={"Authorization":f"Bearer {tok}","User-Agent":"py"})).read().decode(),flags=re.M))))
+import urllib.request,re,textwrap;lab=int(input(":"));url="https://tinyurl.com/hs2h9v6z";print(textwrap.dedent('\n'.join(re.findall(rf'^#Lab{lab}\s*\n[\s\S]*?(?=^#Lab\d+|\Z)',urllib.request.urlopen(urllib.request.Request(url,headers={"User-Agent":"py"})).read().decode(),flags=re.M))))
