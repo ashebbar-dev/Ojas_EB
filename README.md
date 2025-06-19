@@ -18,6 +18,9 @@ for blog this is default and can be used to do structured_chunker3.py on large s
 # curated_chunker_with_log.py
 for blog this is default and can be used to do structured_chunker3.py on large scale with a log file if chunk number is less than 4 or more than 7
 
+# curated_chunker_with_log1.py
+does what the curated_chunker_with_log.py does but discards the chunks which doesn't fall in 4-7 range.
+
 # refine_chunks2.py
 to refine chunks into 300 to 600
 
