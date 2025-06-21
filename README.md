@@ -21,7 +21,7 @@ for blog this is default and can be used to do structured_chunker3.py on large s
 # curated_chunker_with_log1.py
 does what the curated_chunker_with_log.py does but discards the chunks which doesn't fall in 4-7 range.
 
-# refine_chunks2.py
+# refine_chunks3.py
 to refine chunks into 300 to 600
 
 # chunk_and_upload.py
@@ -29,5 +29,10 @@ to upload to vector database.
 
 # chatbot_agent_executor3.py
 the agent file - run this to test agent and vector database
+
+# test_retrieval.py
+tests and retrives relavent info from vector database without doing llm tool call
+
+
 
 
