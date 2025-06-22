@@ -1,5 +1,3 @@
-# chatbot_agent_final_v12_qwen_fix.py
-
 import os
 import json
 from dotenv import load_dotenv
@@ -9,12 +7,15 @@ from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-import argparse
 from typing import Optional
 
 # --- LangChain Agent Imports ---
 from langchain.agents import AgentExecutor, create_react_agent
 from langchain_core.tools import tool
+
+### --- CHANGE #1: Import Flask --- ###
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 # --- 1. Configuration and Client Setup (Unchanged) ---
 load_dotenv()
@@ -35,7 +36,6 @@ def retrieve_info(query: str, page_title_filter: Optional[str] = None) -> str:
     Searches the dementia knowledge base for information. Use this to find answers to specific questions.
     You can optionally filter by 'page_title_filter' to narrow the search.
     """
-    # ... (function body is unchanged) ...
     print(f"\n> TOOL CALL: Retrieving info for query='{query}' with filter='{page_title_filter}'")
     try:
         query_embedding = vo.embed([query], model=VOYAGE_MODEL, input_type="query").embeddings[0]
@@ -61,9 +61,7 @@ def retrieve_info(query: str, page_title_filter: Optional[str] = None) -> str:
     except Exception as e:
         return json.dumps({"error": f"Retrieval failed: {e}"})
 
-# --- 3. The "All-in-One" Agent's Brain (WITH A NEW CRITICAL RULE) ---
-
-# CHANGE #1: Add a new, ultra-strict rule to the prompt.
+# --- 3. The "All-in-One" Agent's Brain (Unchanged) ---
 react_prompt_template = """
 1. You are the 'Caregiver Companion,' an expert AI assistant. Your purpose is to provide clear, empathetic, and actionable answers to caregivers of people with dementia.
 2. make sure you have gathered information on all parts of user's query before answering
@@ -136,80 +134,77 @@ Question: {input}
 """
 react_prompt = ChatPromptTemplate.from_template(react_prompt_template)
 
+### --- CHANGE #2: Initialize Flask App --- ###
+app = Flask(__name__)
+# CORS is crucial for allowing the browser to make requests to this server
+CORS(app)
 
-# --- 4. Main Chatbot Function (WITH FORCED STOP SEQUENCE) ---
-def ask_chatbot(user_query: str, service: str, model_name: str):
+
+### --- CHANGE #3: Modify ask_chatbot and create the API endpoint --- ###
+# This function is no longer called directly from the command line.
+# It's now the core logic for our API endpoint.
+def run_chatbot_logic(user_query: str):
     """
-    Orchestrates the single agent, FORCING it to stop after each action.
+    This function now contains the core chatbot logic.
+    It takes a query and RETURNS the final answer as a string.
     """
+    # For the web UI, let's default to a reliable service and model.
+    # You can make this configurable if you want.
+    service = 'openrouter'
+    model_name = 'qwen/qwen3-14b'
+
     print("="*50)
     print(f"User Query: {user_query}")
     print(f"Using Service: {service} with Model: {model_name}")
     print("="*50)
 
-    # CHANGE #2: Add the `stop` parameter to the LLM initialization.
-    # This is the "hard stop" that physically prevents the model from continuing.
     stop_sequence = ["\nObservation:"]
-
     llm = None
     if service == 'openrouter':
+        # ... (code for openrouter is fine, keeping for completeness)
         api_key = os.getenv("OPENROUTER_API_KEY")
-        if not api_key:
-            raise ValueError("OPENROUTER_API_KEY not found in environment variables.")
-        llm = ChatOpenAI(
-            model=model_name,
-            api_key=api_key,
-            base_url="https://openrouter.ai/api/v1",
-            temperature=0.0,
-            stop=stop_sequence  # <-- FORCED STOP
-        )
+        if not api_key: raise ValueError("OPENROUTER_API_KEY not found")
+        llm = ChatOpenAI(model=model_name, api_key=api_key, base_url="https://openrouter.ai/api/v1", temperature=0.0, stop=stop_sequence)
     elif service == 'groq':
-        # NOTE: Groq API might not fully support the `stop` parameter in the same way.
-        # This is most effective for standard OpenAI-compatible APIs like OpenRouter.
         api_key = os.getenv("GROQ_API_KEY")
-        if not api_key:
-            raise ValueError("GROQ_API_KEY not found in environment variables.")
-        llm = ChatGroq(
-            model_name=model_name,
-            api_key=api_key,
-            temperature=0.0,
-            stop=stop_sequence # <-- FORCED STOP
-        )
+        if not api_key: raise ValueError("GROQ_API_KEY not found")
+        llm = ChatGroq(model_name=model_name, api_key=api_key, temperature=0.0, stop=stop_sequence)
     else:
         raise ValueError(f"Unsupported service: {service}")
 
-    # --- Run the All-in-One Agent ---
     tools = [retrieve_info]
     agent = create_react_agent(llm, tools, react_prompt)
-    agent_executor = AgentExecutor(
-        agent=agent,
-        tools=tools,
-        verbose=True,
-        handle_parsing_errors=True,
-        max_iterations=7
-    )
+    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True, max_iterations=7)
 
-    response = agent_executor.invoke({"input": user_query})
-    agent_final_answer = response.get("output", "The agent failed to produce a final answer.")
+    try:
+        response = agent_executor.invoke({"input": user_query})
+        agent_final_answer = response.get("output", "I'm sorry, I encountered an error and couldn't generate a response.")
+    except Exception as e:
+        print(f"Error during agent execution: {e}")
+        agent_final_answer = "I'm having trouble connecting to my knowledge base right now. Please try again in a moment."
 
-    # --- FINAL OUTPUT ---
-    print("\n\n" + "="*20 + " CAREGIVER COMPANION RESPONSE " + "="*20)
-    print("Disclaimer: I am an AI assistant and not a medical professional. Please consult a doctor for health concerns.\n")
-    print(agent_final_answer)
-    print("="*64)
+    # Instead of printing, we return the final answer
+    return agent_final_answer
+
+# This is our new API endpoint. The frontend will send requests here.
+@app.route('/ask', methods=['POST'])
+def ask():
+    # Get the user's query from the JSON body of the request
+    data = request.get_json()
+    user_query = data.get('query')
+
+    if not user_query:
+        return jsonify({"error": "No query provided"}), 400
+
+    # Run the chatbot logic
+    final_answer = run_chatbot_logic(user_query)
+
+    # Return the answer as JSON
+    return jsonify({"answer": final_answer})
 
 
-# --- 5. Command-Line Interface (Unchanged) ---
+### --- CHANGE #4: Run the Flask server instead of the command-line interface --- ###
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="An advanced, transparent RAG agent for dementia caregivers.")
-    parser.add_argument("--service", choices=['openrouter', 'groq'], required=True, help="The LLM service to use.")
-    parser.add_argument("--query", required=True, help="The question to ask the chatbot, enclosed in quotes.")
-    args = parser.parse_args()
-
-    # Use a Qwen model as requested
-    model_to_use = "qwen/qwen3-14b"
-    if args.service == 'groq':
-        # If using Groq, Llama3 is still the most reliable choice
-        model_to_use = "llama3-70b-8192"
-
-    ask_chatbot(user_query=args.query, service=args.service, model_name=model_to_use)
+    # This starts the web server.
+    # debug=True allows for auto-reloading when you save the file.
+    app.run(host='0.0.0.0', port=5000, debug=True)
