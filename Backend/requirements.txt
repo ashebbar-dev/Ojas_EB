@@ -9,3 +9,18 @@ openrouter>=0.1.0      # for the openrouter client (if used)
 # (Optional) HTTP utilities / dotenv
 python-dotenv>=0.21.0  # for loading API keys from .env
 requests>=2.28.0   
+
+langchain
+langchain-openai
+
+# Groq chat support via LangChain
+langchain-groq
+
+# Core LangChain utilities (prompts, parsers, tools, callbacks)
+langchain-core
+
+# Supabase client
+supabase
+
+# VoyageAI SDK
+voyageai
