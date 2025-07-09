@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta charset="utf-8" />
+  <title>Ojas</title>
+  <link crossorigin href="https://fonts.gstatic.com" rel="preconnect" />
+  <link as="style" href="https://fonts.googleapis.com/css2?display=swap&family=Manrope:wght@400;500;700;800&family=Noto+Sans:wght@400;500;700;900" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <style type="text/tailwindcss">
+    :root {
+      --sidebar-bg:#0d0d0d; --active-bg:#fff; --hover-bg:#2a2a2a; 
+      --primary-color:#000; --text-primary:#fff; --text-secondary:#a0a0a0; 
+      --active-text-color: #0d0d0d;
+      --main-bg:#fff; --text-main-primary:#000; --text-main-secondary:#333; 
+      --border-color:#e5e7eb; --sidebar-border-color: #333;
+      --input-bg:#f3f4f6; --button-hover-bg:#f3f4f6; 
+      --chat-bubble-user-bg:#000; --chat-bubble-user-text:#fff; 
+      --chat-bubble-assistant-bg:#f3f4f6; --chat-bubble-assistant-text:#000;
+    }
+    .chat-bubble-user {@apply bg-[var(--chat-bubble-user-bg)] text-[var(--chat-bubble-user-text)] rounded-lg px-4 py-3 max-w-xs sm:max-w-md md:max-w-lg;}
+    .chat-bubble-assistant {@apply bg-[var(--chat-bubble-assistant-bg)] text-[var(--chat-bubble-assistant-text)] rounded-lg px-4 py-3 max-w-xs sm:max-w-md md:max-w-lg;}
+    .sidebar-link {@apply flex items-center gap-3 px-4 py-2.5 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--text-primary)] transition-colors duration-150;}
+    .sidebar-link.active {@apply bg-[var(--active-bg)] text-[var(--active-text-color)] font-semibold;}
+    .icon-button {@apply p-2 rounded-full text-[var(--text-main-secondary)] hover:bg-[var(--button-hover-bg)] hover:text-[var(--text-main-primary)] transition-colors duration-150;}
+    .chat-bubble-assistant h1 { @apply text-2xl font-bold mt-4 mb-2; }
+    .chat-bubble-assistant h2 { @apply text-xl  font-semibold mt-4 mb-2; }
+    .chat-bubble-assistant h3 { @apply text-lg  font-semibold mt-4 mb-2; }
+    html,body{width:100%;max-width:100vw;overflow-x:hidden;}
+    @media (max-width: 639px) {
+        .chat-bubble-user,
+        .chat-bubble-assistant {
+            @apply max-w-[calc(100vw-6rem)];   /* viewport minus ~3 rem padding each side */
+        }
+    }
+    @media (max-width: 639px) {
+        #send-button  { @apply h-12 px-5 text-base; }
+        #new-chat-btn { @apply py-3; }
+    }
+    @media (max-width: 768px) {
+        .sidebar-link {
+            @apply py-4 min-h-[48px];
+        }
+        
+        .delete-chat-btn {
+            @apply visible opacity-70 min-h-[44px] min-w-[44px] p-2;
+        }
+        
+        #sidebar-toggle {
+            @apply min-h-[48px] min-w-[48px] p-3 bg-white shadow-lg;
+        }
+        
+        /* Prevent iOS zoom on input focus */
+        input, textarea {
+            font-size: 16px !important;
+        }
+    }
+    html, body {
+        height: 100%;
+        height: 100dvh; /* Dynamic viewport height */
+        width: 100%;
+        max-width: 100vw;
+        overflow-x: hidden;
+    }
+
+        /* Container height fixes for mobile browsers */
+    .main-container {
+        height: 100vh;
+        height: 100dvh; /* Fallback for older browsers, then modern dynamic height */
+        max-height: 100vh;
+        max-height: 100dvh;
+    }
+
+        /* Mobile browser safe area */
+    @supports (height: 100dvh) {
+        .mobile-height {
+            height: 100dvh;
+            min-height: 100dvh;
+        }
+    }
+  </style>
+</head>
+<body class="bg-[var(--main-bg)] overflow-x-hidden" style="font-family: Manrope, 'Noto Sans', sans-serif;">
+  <div class="relative flex size-full mobile-height flex-col overflow-x-hidden main-container">
+    <div class="flex h-full grow">
+      <!-- Sidebar -->
+      <aside id="sidebar" class="flex flex-col w-72 bg-[var(--sidebar-bg)] p-4 space-y-6 border-r border-transparent md:translate-x-0 transition-transform duration-200 -translate-x-full fixed inset-y-0 left-0 z-50">
+        <a id="home-link" href="#" class="flex items-center gap-2 px-2 pt-2">
+          <svg class="text-[var(--text-primary)] size-8" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Z"/></svg>
+          <h1 class="text-[var(--text-primary)] text-xl font-bold">Ojas</h1>
+        </a>
+        <nav class="flex-grow space-y-1 overflow-y-auto min-h-0" id="chat-list-container">
+          <a id="new-chat-btn" class="sidebar-link" href="#">
+            <div class="text-[var(--text-secondary)]"><svg fill="currentColor" viewBox="0 0 256 256" width="24"><path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"/></svg></div>
+            <p class="text-sm font-medium">New Chat</p>
+          </a>
+          <div class="pt-4">
+            <h2 class="px-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1">Chat History</h2>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- Main -->
+      <main id="main-content" class="flex-1 flex flex-col bg-[var(--main-bg)] relative md:ml-72 transition-all duration-200">
+          <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden"></div>
+          
+          <div class="absolute top-0 left-0 p-4 z-20">
+            <button id="sidebar-toggle" class="p-1.5 text-[var(--text-main-secondary)] hover:text-[var(--text-main-primary)]">
+              <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" width="24" height="24">
+                <path d="M3 12h18M3 6h18M3 18h18"></path>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Landing section -->
+          <section id="landing" class="flex flex-col items-center justify-center flex-1 gap-8 p-6 text-center">
+            <h1 class="text-2xl sm:text-3xl md:text-5xl font-bold text-[var(--text-main-primary)]">How can I help you today?</h1>
+            <form id="landing-form" class="w-full max-w-xl">
+              <div class="flex items-center bg-[var(--input-bg)] rounded-lg shadow-lg p-1">
+                <input id="landing-input" type="text" placeholder="Ask anything" class="flex-1 bg-transparent outline-none px-3 py-3 text-[var(--text-main-primary)] placeholder:text-[var(--text-main-secondary)]" />
+                <button type="submit" class="p-3 rounded-md bg-black text-white">
+                  <svg fill="currentColor" viewBox="0 0 256 256" width="20"><path d="M224.34,129.6l-160,96A8,8,0,0,1,48,218.55V152a8,8,0,0,1,16,0v48.38l133.3-79.94a8,8,0,0,0,0-12.88L64,27.62V76a8,8,0,0,1-16,0V37.45a8,8,0,0,1,12.34-7.05l160,96A8,8,0,0,1,224.34,129.6Z"/></svg>
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <!-- Chat UI -->
+          <div id="chat-ui" class="hidden flex flex-col h-full">
+            <header class="flex items-center justify-between border-b border-[var(--border-color)] px-6 py-4 h-16">
+              <h2 id="chat-title" class="text-[var(--text-main-primary)] text-xl font-semibold leading-tight ml-10" contenteditable="true"></h2>
+            </header>
+            <div id="chat-container" class="flex-grow h-0 overflow-y-auto p-6 space-y-6 pb-24"></div>
+            <footer class="bg-[var(--main-bg)] border-t border-[var(--border-color)] p-4 sticky bottom-[env(safe-area-inset-bottom)] z-10">
+              <div class="flex items-center gap-3">
+                <div class="flex-1">
+                  <textarea id="message-input" rows="1" placeholder="Type a message..." class="form-textarea w-full resize-none overflow-hidden rounded-lg text-[var(--text-main-primary)] bg-[var(--input-bg)] focus:outline-none focus:ring-2 focus:ring-black border border-[var(--border-color)] placeholder:text-[var(--text-main-secondary)] px-4 py-3 text-sm"></textarea>
+                </div>
+                <button id="send-button" class="flex items-center justify-center gap-2 rounded-lg h-11 px-4 bg-black text-white text-sm font-semibold"><span>Send</span><svg fill="currentColor" viewBox="0 0 256 256" width="16"><path d="M224.34,129.6l-160,96A8,8,0,0,1,48,218.55V152a8,8,0,0,1,16,0v48.38l133.3-79.94a8,8,0,0,0,0-12.88L64,27.62V76a8,8,0,0,1-16,0V37.45a8,8,0,0,1,12.34-7.05l160,96A8,8,0,0,1,224.34,129.6Z"/></svg></button>
+              </div>
+            </footer>
+          </div>
+      </main>
+    </div>
+  </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, initializing chat app...');
+    
+    // DOM elements
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const mainContent = document.getElementById('main-content');
+    const overlay = document.getElementById('sidebar-overlay');
+    const homeLink = document.getElementById('home-link');
+    const landing = document.getElementById('landing');
+    const landingForm = document.getElementById('landing-form');
+    const landingInput = document.getElementById('landing-input');
+    const chatUI = document.getElementById('chat-ui');
+    const newChatBtn = document.getElementById('new-chat-btn');
+    const chatListContainer = document.getElementById('chat-list-container');
+    const chatContainer = document.getElementById('chat-container');
+    const chatTitle = document.getElementById('chat-title');
+    const messageInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-button');
+
+    // State
+    let chatCounter = 1;
+    let chats = [{id: 1, name: 'Initial Chat', messages: [], backendId: null}];
+    let activeChatId = 1;
+
+    // Sidebar functionality
+    function toggleSidebar() {
+        if (window.innerWidth >= 768) {
+            sidebar.classList.toggle('md:translate-x-0');
+            mainContent.classList.toggle('md:ml-72');
+        } else {
+            sidebar.classList.toggle('-translate-x-full');
+            const isNowOpen = !sidebar.classList.contains('-translate-x-full');
+            overlay.classList.toggle('hidden', !isNowOpen);
+            document.body.classList.toggle('overflow-hidden', isNowOpen);
+        }
+    }
+
+    sidebarToggle.addEventListener('click', toggleSidebar);
+    overlay.addEventListener('click', toggleSidebar);
+
+    homeLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        landing.classList.remove('hidden');
+        chatUI.classList.add('hidden');
+        if (window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) {
+            toggleSidebar();
+        }
+    });
+
+    // Chat management
+    function renderChatList() {
+        const links = [...chatListContainer.querySelectorAll('a.sidebar-link[data-chat-id]')];
+        links.forEach(l => l.remove());
+        const historyContainer = chatListContainer.querySelector('div.pt-4');
+        
+        const sortedChats = [...chats].sort((a, b) => b.id - a.id);
+
+        sortedChats.forEach(chat => {
+            const link = document.createElement('a');
+            link.href = '#';
+            link.className = 'sidebar-link group' + (chat.id === activeChatId ? ' active' : '');
+            link.dataset.chatId = chat.id;
+
+            link.innerHTML = `
+                <div class="text-[var(--text-secondary)] group-[.active]:text-[var(--active-text-color)]">
+                    <svg fill="currentColor" viewBox="0 0 256 256" width="24"><path d="M216,48H40A16,16,0,0,0,24,64V224a15.84,15.84,0,0,0,9.37,14.66A16,16,0,0,0,40,240a15.91,15.91,0,0,0,10.29-3.86L88,198.28V208a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V64A16,16,0,0,0,216,48Zm0,160H104a16,16,0,0,0-16,16v13.33l-20-18.18a16,16,0,0,0-21.71.29A1.73,1.73,0,0,1,40,224V64H216Z"/></svg>
+                </div>
+                <p class="text-sm font-medium truncate flex-1">${chat.name}</p>
+                <button class="delete-chat-btn p-1 rounded-md text-gray-500 hover:text-red-500 hover:bg-gray-700 md:invisible md:group-hover:visible md:group-[.active]:visible">
+                    <svg class="size-4" fill="currentColor" viewBox="0 0 256 256"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"></path></svg>
+                </button>
+            `;
+            
+            link.addEventListener('click', e => {
+                e.preventDefault(); 
+                selectChat(chat.id);
+                if (window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) {
+                    toggleSidebar();
+                }
+            });
+            
+            const deleteBtn = link.querySelector('.delete-chat-btn');
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); 
+                e.preventDefault();
+                deleteChat(chat.id);
+            });
+
+            historyContainer.appendChild(link);
+        });
+    }
+
+    function deleteChat(idToDelete) {
+        const indexToDelete = chats.findIndex(c => c.id === idToDelete);
+        if (indexToDelete > -1) {
+            chats.splice(indexToDelete, 1);
+        }
+
+        if (chats.length === 0) {
+            homeLink.click();
+            activeChatId = null;
+        } else if (activeChatId === idToDelete) {
+            const newActiveChat = chats.sort((a,b) => b.id - a.id)[0];
+            selectChat(newActiveChat.id);
+        }
+        
+        renderChatList();
+    }
+
+    function selectChat(id) {
+        activeChatId = id;
+        const chat = chats.find(c => c.id === id);
+        if (!chat) return;
+        
+        chatTitle.textContent = chat.name;
+        chatContainer.innerHTML = '';
+        chat.messages.forEach(m => addMessageBubble(m.role, m.text, false));
+        
+        landing.classList.add('hidden');
+        chatUI.classList.remove('hidden');
+        
+        renderChatList();
+        messageInput.focus();
+    }
+
+    function createNewChat(selectNow = true) {
+        chatCounter++;
+        const name = `Chat ${chatCounter}`;
+        chats.push({id: chatCounter, name, messages: [], backendId: null});
+        if (selectNow) {
+            selectChat(chatCounter);
+        } else {
+            activeChatId = chatCounter;
+            renderChatList();
+        }
+    }
+
+    // Message handling
+    function addMessageBubble(role, html, store = true) {
+        const wrap = document.createElement('div');
+        wrap.className = 'flex items-end gap-3' + (role === 'user' ? ' justify-end' : '');
+        
+        if (role === 'assistant') {
+            const avatar = document.createElement('div');
+            avatar.className = 'bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shrink-0 shadow-md border';
+            avatar.style.backgroundImage = 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAHwdaafl2PTcdj3L-yoZQDW76uCZPXCzR8x707aPDMTz94oPvozBI48ur0vmFscba2IDLxHmYG5_fyFAorBsjqnlDYgX-09eLXE0WqFVRyy97ng_AYpuUx5ascCQGom7hrYJgaQZbptwVVVCK65ja_VYSa22rS4sy_QnppphvC2vPZlrwOFOUd4F0pURHxHkKq1sO-vcLxTmlKrNIpzxCaqeQqFT1y2yy41liuCyi-ykTf1zME7GPIq7xjqEHVsC219ia1Ui5QGsI")';
+            wrap.appendChild(avatar);
+        }
+        
+        const bubbleWrap = document.createElement('div');
+        bubbleWrap.className = 'flex flex-col gap-1 ' + (role === 'user' ? 'items-end' : 'items-start');
+        
+        const name = document.createElement('p');
+        name.className = 'text-[var(--text-main-secondary)] text-xs font-medium max-w-[360px] px-1' + (role === 'user' ? ' text-right' : '');
+        name.textContent = role === 'user' ? 'You' : 'Assistant';
+        
+        const bubble = document.createElement('p');
+        bubble.className = role === 'user' ? 'chat-bubble-user shadow-md' : 'chat-bubble-assistant shadow-md';
+        bubble.innerHTML = html;
+        
+        bubbleWrap.appendChild(name);
+        bubbleWrap.appendChild(bubble);
+        wrap.appendChild(bubbleWrap);
+        chatContainer.appendChild(wrap);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        
+        if (store) {
+            const chat = chats.find(c => c.id === activeChatId);
+            if (chat) chat.messages.push({role, text: html});
+            renderChatList();
+        }
+        
+        return bubble;
+    }
+
+    // Status indicator
+    let statusBubble = null;
+    function showStatus(text) {
+        if (!statusBubble) {
+            statusBubble = addMessageBubble('assistant', `<em>${text}</em>`, false);
+        } else {
+            statusBubble.innerHTML = `<em>${text}</em>`;
+        }
+    }
+
+    function clearStatus() {
+        if (statusBubble) {
+            statusBubble.parentElement.parentElement.remove();
+        }
+        statusBubble = null;
+    }
+
+    // Main chat functionality
+    function startChat(initialMessage) {
+        if (chats.length === 0){
+            createNewChat(false);              // adds chat and sets activeChatId
+        }
+        if (activeChatId === null){            // safety
+            createNewChat(false);
+        }
+        const currentChat = chats.find(c => c.id === activeChatId);
+        if (currentChat && currentChat.messages.length > 0) {
+            createNewChat(false);
+        }
+        
+        const newCurrentChat = chats.find(c => c.id === activeChatId);
+        if (newCurrentChat && newCurrentChat.messages.length === 0 && initialMessage) {
+            newCurrentChat.name = initialMessage.length > 25 ? initialMessage.substring(0, 22) + '...' : initialMessage;
+        }
+
+        selectChat(activeChatId);
+
+        if (initialMessage) {
+            addMessageBubble('user', initialMessage);
+            sendMessageToBackend(initialMessage);
+        }
+    }
+
+    function sendMessage() {
+        const msg = messageInput.value.trim();
+        if (!msg) return;
+        messageInput.value = '';
+        autoResizeTextarea();
+
+        /* ── rename chat BEFORE the message gets stored ─────────── */
+        const chat = chats.find(c => c.id === activeChatId);
+        if (chat && chat.messages.length === 0) {            // first user msg
+            chat.name = msg.length > 25 ? msg.slice(0, 22) + '…' : msg;
+            chatTitle.textContent = chat.name;               // header
+            renderChatList();                                // sidebar
+        }
+        /* ───────────────────────────────────────────────────────── */
+
+        addMessageBubble('user', msg);       // this now stores the msg
+
+        sendMessageToBackend(msg);
+    }
+  /* ──────────────────────────────────────────────────────────── */
+
+    function sendMessageToBackend(userMessage) {
+        const curChat = chats.find(c => c.id === activeChatId);
+        
+        if (!curChat.backendId) {
+            console.log('Getting new chat ID from backend...');
+            fetch('https://ojas-sut5.onrender.com/new_chat')
+                .then(r => r.json())
+                .then(d => {
+                    curChat.backendId = d.chat_id;
+                    console.log('Got backend chat ID:', d.chat_id);
+                    openSSE(curChat.backendId, userMessage);
+                })
+                .catch(error => {
+                    console.error('Error getting new chat ID:', error);
+                    addMessageBubble('assistant', '<em>Connection error. Please make sure the backend server is running.</em>', false);
+                });
+        } else {
+            openSSE(curChat.backendId, userMessage);
+        }
+    }
+
+    function openSSE(backendId, userMessage){
+        showStatus('Thinking...');
+        const url = `https://ojas-sut5.onrender.com/ask_stream?chat_id=${backendId}&query=${encodeURIComponent(userMessage)}`;
+        const es  = new EventSource(url);
+
+        let streamingBubble = null;      // reference to the live assistant bubble
+
+        es.onmessage = (e) => {
+            const payload = JSON.parse(e.data);
+
+            if (payload.type === 'status') {
+                switch (payload.status) {
+                    case 'thinking':  showStatus('Thinking...');  break;
+                    case 'searching': showStatus('Searching…');   break;
+                    case 'answering':
+                        clearStatus();
+                        streamingBubble = addMessageBubble('assistant','',false); // not stored yet
+                        break;
+
+                    case 'finished':
+                        /* ────────────────────────────────────────────────
+                        SAVE the assistant reply now that it is complete
+                        ──────────────────────────────────────────────── */
+                        if (streamingBubble){
+                            const chat = chats.find(c => c.id === activeChatId);
+                            if (chat){
+                                chat.messages.push({
+                                    role : 'assistant',
+                                    text : streamingBubble.innerHTML          // final HTML
+                                });
+                            }
+                        }
+                        es.close();
+                        streamingBubble = null;
+                        renderChatList();
+                        break;
+                }
+            }
+            else if (payload.type === 'answer' && streamingBubble){
+                // stream chunk → markdown → html  (using marked.parse)
+                const raw = (streamingBubble.dataset.rawMd || '') + payload.chunk;
+                streamingBubble.dataset.rawMd = raw;
+                streamingBubble.innerHTML     = marked.parse(raw);
+                chatContainer.scrollTop       = chatContainer.scrollHeight;
+            }
+        };
+
+        es.onerror = (err)=>{
+            console.error('SSE error',err);
+            es.close(); clearStatus();
+            addMessageBubble('assistant','<em>Connection lost.</em>',false);
+        };
+    }
+
+    // Event listeners
+    landingForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const query = landingInput.value.trim();
+        if (!query) return;
+        landingInput.value = '';
+        startChat(query);
+    });
+
+    newChatBtn.addEventListener('click', e => {
+        e.preventDefault();
+        createNewChat(true);
+    });
+
+    sendBtn.addEventListener('click', sendMessage);
+    
+    messageInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    function autoResizeTextarea() {
+        messageInput.style.height = 'auto';
+        messageInput.style.height = (messageInput.scrollHeight) + 'px';
+    }
+    messageInput.addEventListener('input', autoResizeTextarea);
+
+    // Initialize
+    renderChatList();
+    console.log('Chat app initialized successfully');
+});
+</script>
+</body>
+</html>
