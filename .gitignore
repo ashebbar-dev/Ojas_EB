@@ -1,0 +1,19 @@
+# Python virtual environment
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment variables
+.env
+
+# Output files from scripts
+*.json
+*.csv
+chroma_db/
+
+# IDE and OS files
+.idea/
+.vscode/
+*.DS_Store
