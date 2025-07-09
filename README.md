@@ -1,4 +1,5 @@
 # OJAS -  Advanced RAG Agent for Dementia Caregivers
+![alt text](image-1.png)
 
 This repository contains the complete source code and documentation for a state-of-the-art, multi-path Retrieval-Augmented Generation (RAG) agent. It is designed to function as an empathetic, accurate, and verifiable AI assistant for caregivers of people with dementia, using `alzheimers.org.uk` as its exclusive knowledge source.
 
@@ -7,6 +8,7 @@ This is not a simple RAG implementation. It is an advanced, multi-stage system d
 ---
 
 ## 🌟 Core Features & Technical Highlights
+![alt text](image-2.png)
 
 - **Sophisticated Agentic Workflow:** Implements a "Decompose -> Retrieve -> Synthesize" pipeline, allowing the agent to break down complex, multi-intent user queries into focused sub-queries before retrieving information.
 - **Novel Parallel-Path Retrieval:** The core of the system is a custom retrieval tool that executes two search strategies in parallel for each sub-query:
