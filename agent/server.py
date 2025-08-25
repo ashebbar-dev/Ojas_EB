@@ -14,7 +14,7 @@ import json, uuid, time, threading
 from collections import defaultdict
 from flask import Flask, request, Response, jsonify
 from flask_cors import CORS
-from chatbot_agent_claw4 import ask_parallel_enhanced_chatbot, simplified_react_prompt_template
+from chatbot_agent_claw7 import ask_parallel_enhanced_chatbot, simplified_react_prompt_template
 # top of file
 from queue import Queue, Empty
 import threading
