@@ -391,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!curChat.backendId) {
             console.log('Getting new chat ID from backend...');
-            fetch('https://ojas-sut5.onrender.com/new_chat')
+            fetch('http://127.0.0.1:5000/new_chat')
                 .then(r => r.json())
                 .then(d => {
                     curChat.backendId = d.chat_id;
@@ -409,7 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function openSSE(backendId, userMessage){
         showStatus('Thinking...');
-        const url = `https://ojas-sut5.onrender.com/ask_stream?chat_id=${backendId}&query=${encodeURIComponent(userMessage)}`;
+        const url = `http://127.0.0.1:5000/ask_stream?chat_id=${backendId}&query=${encodeURIComponent(userMessage)}`;
         const es  = new EventSource(url);
 
         let streamingBubble = null;      // reference to the live assistant bubble
